@@ -35,8 +35,12 @@ interface AudiogramPoint {
 
 type Ear = 'left' | 'right';
 
-const FREQUENCIES = [125, 250, 500, 1000, 2000, 4000, 8000];
-const INTENSITY_RANGE = [10, 120]; // Range from 10 dBHL to 120 dBHL
+const FREQUENCIES = [250, 500, 1000, 2000, 4000, 8000];
+const INTENSITY_RANGE = [-10, 120]; // Range from -10 dBHL to 120 dBHL
+
+const LEFT_PADDING = 60;
+const TOP_PADDING = 60;
+const BOTTOM_PADDING = 30;
 
 const AudiogramApp = () => {
   const [leftEarData, setLeftEarData] = useState<AudiogramPoint[]>(
@@ -87,7 +91,7 @@ const AudiogramApp = () => {
     (intensity: number, canvasHeight: number) => {
       const [minIntensity, maxIntensity] = INTENSITY_RANGE;
       const normalizedIntensity =
-        (maxIntensity - intensity) / (maxIntensity - minIntensity);
+        (intensity - minIntensity) / (maxIntensity - minIntensity);
       return canvasHeight * normalizedIntensity;
     },
     []
@@ -108,7 +112,7 @@ const AudiogramApp = () => {
     const [minIntensity, maxIntensity] = INTENSITY_RANGE;
     const normalizedY = y / canvasHeight;
     const intensity =
-      INTENSITY_RANGE[1] - normalizedY * (maxIntensity - minIntensity);
+      minIntensity + normalizedY * (maxIntensity - minIntensity);
     return intensity;
   }, []);
 
@@ -134,27 +138,24 @@ const AudiogramApp = () => {
       canvasWidth: number,
       canvasHeight: number
     ) => {
-      // Add padding to accommodate labels
-      const leftPadding = 40; // Space for intensity labels
-      const bottomPadding = 30; // Space for frequency labels
-      const graphWidth = canvasWidth - leftPadding;
-      const graphHeight = canvasHeight - bottomPadding;
-
+      const graphWidth = canvasWidth - LEFT_PADDING;
+      const graphHeight = canvasHeight - TOP_PADDING - BOTTOM_PADDING;
+  
       context.clearRect(0, 0, canvasWidth, canvasHeight);
-
+  
       // Draw grid first
-      context.strokeStyle = 'rgba(150, 150, 150, 0.5)'; // Light gray grid
+      context.strokeStyle = 'rgba(150, 150, 150, 0.5)';
       context.lineWidth = 0.5;
-
+  
       // Draw vertical lines for frequencies
       FREQUENCIES.forEach((frequency) => {
-        const x = leftPadding + frequencyToX(frequency, graphWidth);
+        const x = LEFT_PADDING + frequencyToX(frequency, graphWidth);
         context.beginPath();
-        context.moveTo(x, 0);
-        context.lineTo(x, graphHeight);
+        context.moveTo(x, TOP_PADDING);
+        context.lineTo(x, TOP_PADDING + graphHeight);
         context.stroke();
       });
-
+  
       // Draw horizontal lines for intensity
       const [minIntensity, maxIntensity] = INTENSITY_RANGE;
       for (
@@ -162,23 +163,23 @@ const AudiogramApp = () => {
         intensity <= maxIntensity;
         intensity += 10
       ) {
-        const y = intensityToY(intensity, graphHeight);
+        const y = TOP_PADDING + intensityToY(intensity, graphHeight);
         context.beginPath();
-        context.moveTo(leftPadding, y);
-        context.lineTo(leftPadding + graphWidth, y);
+        context.moveTo(LEFT_PADDING, y);
+        context.lineTo(LEFT_PADDING + graphWidth, y);
         context.stroke();
       }
-
-      // Draw frequency labels
+  
+      // Draw frequency labels (at top)
       context.font = '12px sans-serif';
       context.fillStyle = 'white';
       context.textAlign = 'center';
-      context.textBaseline = 'top';
+      context.textBaseline = 'bottom';
       FREQUENCIES.forEach((frequency) => {
-        const x = leftPadding + frequencyToX(frequency, graphWidth);
-        context.fillText(String(frequency), x, graphHeight + 10); // Position labels below the grid
+        const x = LEFT_PADDING + frequencyToX(frequency, graphWidth);
+        context.fillText(String(frequency), x, TOP_PADDING - 10);
       });
-
+  
       // Draw intensity labels (on the left side)
       context.textAlign = 'right';
       context.textBaseline = 'middle';
@@ -187,13 +188,33 @@ const AudiogramApp = () => {
         intensity <= maxIntensity;
         intensity += 10
       ) {
-        const y = intensityToY(intensity, graphHeight);
-        context.fillText(String(intensity), leftPadding - 10, y); // Position labels to the left of the grid
+        const y = TOP_PADDING + intensityToY(intensity, graphHeight);
+        context.fillText(String(intensity), LEFT_PADDING - 10, y);
       }
-
+  
+      // Draw axis labels
+      context.save();
+      
+      // Y-axis label (Volume)
+      context.translate(20, canvasHeight / 2);
+      context.rotate(-Math.PI / 2);
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      context.fillText('Volume (dB)', 0, 0);
+      context.restore();
+  
+      // X-axis label (Frequency)
+      context.textAlign = 'center';
+      context.textBaseline = 'top';
+      context.fillText(
+        'Frequency (Hz)',
+        LEFT_PADDING + graphWidth / 2,
+        TOP_PADDING - 40
+      );
+  
       // IMPORTANT: Increase line width for data points to make them more visible
       context.lineWidth = 2;
-
+  
       // Function to draw data points with connecting lines
       const drawData = (
         data: AudiogramPoint[],
@@ -203,17 +224,17 @@ const AudiogramApp = () => {
       ) => {
         // Draw connecting lines first
         context.beginPath();
-        context.strokeStyle = ear === 'left' ? '#3b82f6' : '#ef4444'; // Using blue-500 and red-500 colors
+        context.strokeStyle = ear === 'left' ? '#3b82f6' : '#ef4444';
         let isFirstPoint = true;
-
+  
         data.forEach((point) => {
           const intensity = drawAir
             ? point.airConduction
             : point.boneConduction;
           if (intensity !== null) {
-            const x = leftPadding + frequencyToX(point.frequency, graphWidth);
-            const y = intensityToY(intensity, graphHeight);
-
+            const x = LEFT_PADDING + frequencyToX(point.frequency, graphWidth);
+            const y = TOP_PADDING + intensityToY(intensity, graphHeight);
+  
             if (isFirstPoint) {
               context.moveTo(x, y);
               isFirstPoint = false;
@@ -224,13 +245,10 @@ const AudiogramApp = () => {
         });
         context.stroke();
       };
-
+  
       // Draw data on top of the grid
-      // Draw left ear data
       drawData(leftEarData, 'left', true, context);
       drawData(leftEarData, 'left', false, context);
-
-      // Draw right ear data
       drawData(rightEarData, 'right', true, context);
       drawData(rightEarData, 'right', false, context);
     },
@@ -240,84 +258,73 @@ const AudiogramApp = () => {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
+  
     const context = canvas.getContext('2d');
     if (!context) return;
-
+  
     const container = document.getElementById('audiogram-container');
     if (!container) return;
-
-    // Define padding values
-    const leftPadding = 40;
-    const bottomPadding = 30;
-
-    // Calculate the actual space we need for the graph and legend
+  
     const containerWidth = container.offsetWidth;
-    const graphWidth = containerWidth * 0.8; // Use 80% of width for the graph
-    const legendWidth = containerWidth * 0.2; // Use 20% for legend
-    const containerHeight = 0.7 * containerWidth; // Maintain aspect ratio
-
-    // Set canvas to the full size we need
+    const graphWidth = containerWidth * 0.8;
+    const legendWidth = containerWidth * 0.2;
+    const containerHeight = 0.7 * containerWidth;
+  
     canvas.width = graphWidth + legendWidth;
     canvas.height = containerHeight;
-
-    // Store dimensions for overlay positioning
+  
     setCanvasDimensions({
       width: canvas.width,
       height: containerHeight,
       graphWidth: graphWidth,
-      leftPadding: leftPadding,
-      bottomPadding: bottomPadding,
+      leftPadding: LEFT_PADDING,
+      bottomPadding: BOTTOM_PADDING,
     });
-
-    // Now draw the audiogram with the correct width parameters
+  
     drawAudiogram(context, graphWidth, containerHeight);
   }, [drawAudiogram]);
 
   const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
+  
     const rect = canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-
-    // Define padding values (same as in drawAudiogram)
-    const leftPadding = 40;
-    const bottomPadding = 30;
-    const graphWidth = canvas.width * 0.8 - leftPadding;
-    const graphHeight = canvas.height - bottomPadding;
-
-    // Adjust x and y to account for padding
-    const adjustedX = x - leftPadding;
-    const adjustedY = y;
-
+  
+    const topPadding = 40;
+    const graphWidth = canvas.width * 0.8 - LEFT_PADDING;
+    const graphHeight = canvas.height - topPadding - BOTTOM_PADDING;
+  
+    const adjustedX = x - LEFT_PADDING;
+    const adjustedY = y - topPadding;
+  
     if (
       adjustedX < 0 ||
       adjustedX > graphWidth ||
       adjustedY < 0 ||
       adjustedY > graphHeight
     ) {
-      return; // Do nothing if click is outside the grid area
+      return;
     }
-
+  
     const clickedFrequency = findNearestFrequency(adjustedX, graphWidth);
     const clickedIntensity =
-      Math.round(yToIntensity(adjustedY, graphHeight) / 5) * 5; // Round to nearest 5 dB
-
+      Math.round(yToIntensity(adjustedY, graphHeight) / 5) * 5;
+  
     if (
       clickedIntensity < INTENSITY_RANGE[0] ||
       clickedIntensity > INTENSITY_RANGE[1]
     ) {
-      return; // Do not allow points outside the intensity range.
+      return;
     }
-
+  
     const newData =
       selectedEar === 'left' ? [...leftEarData] : [...rightEarData];
     const pointIndex = newData.findIndex(
       (p) => p.frequency === clickedFrequency
     );
-
+  
     if (pointIndex !== -1) {
       if (isDrawingAir) {
         newData[pointIndex] = {
@@ -330,7 +337,7 @@ const AudiogramApp = () => {
           boneConduction: clickedIntensity,
         };
       }
-
+  
       if (selectedEar === 'left') {
         setLeftEarData(newData);
       } else {
@@ -526,10 +533,14 @@ const AudiogramApp = () => {
                         canvasDimensions.graphWidth -
                           canvasDimensions.leftPadding
                       );
-                    const y = intensityToY(
-                      point.airConduction,
-                      canvasDimensions.height - canvasDimensions.bottomPadding
-                    );
+                    const y =
+                      TOP_PADDING +
+                      intensityToY(
+                        point.airConduction,
+                        canvasDimensions.height -
+                          canvasDimensions.bottomPadding -
+                          TOP_PADDING
+                      );
                     return (
                       <div
                         key={`left-air-${index}`}
@@ -558,10 +569,14 @@ const AudiogramApp = () => {
                         canvasDimensions.graphWidth -
                           canvasDimensions.leftPadding
                       );
-                    const y = intensityToY(
-                      point.airConduction,
-                      canvasDimensions.height - canvasDimensions.bottomPadding
-                    );
+                    const y =
+                      TOP_PADDING +
+                      intensityToY(
+                        point.airConduction,
+                        canvasDimensions.height -
+                          canvasDimensions.bottomPadding -
+                          TOP_PADDING
+                      );
                     return (
                       <div
                         key={`right-air-${index}`}
@@ -590,10 +605,14 @@ const AudiogramApp = () => {
                         canvasDimensions.graphWidth -
                           canvasDimensions.leftPadding
                       );
-                    const y = intensityToY(
-                      point.boneConduction,
-                      canvasDimensions.height - canvasDimensions.bottomPadding
-                    );
+                    const y =
+                      TOP_PADDING +
+                      intensityToY(
+                        point.boneConduction,
+                        canvasDimensions.height -
+                          canvasDimensions.bottomPadding -
+                          TOP_PADDING
+                      );
                     return (
                       <div
                         key={`left-bone-${index}`}
@@ -626,10 +645,14 @@ const AudiogramApp = () => {
                         canvasDimensions.graphWidth -
                           canvasDimensions.leftPadding
                       );
-                    const y = intensityToY(
-                      point.boneConduction,
-                      canvasDimensions.height - canvasDimensions.bottomPadding
-                    );
+                    const y =
+                      TOP_PADDING +
+                      intensityToY(
+                        point.boneConduction,
+                        canvasDimensions.height -
+                          canvasDimensions.bottomPadding -
+                          TOP_PADDING
+                      );
                     return (
                       <div
                         key={`right-bone-${index}`}
