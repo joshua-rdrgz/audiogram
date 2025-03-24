@@ -9,9 +9,7 @@
     /* ShadCN/UI */
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["vite.config.ts"]

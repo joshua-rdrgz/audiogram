@@ -88,14 +88,14 @@ const AudiogramApp = () => {
       frequency: f,
       airConduction: null,
       boneConduction: null,
-    }))
+    })),
   );
   const [rightEarData, setRightEarData] = useState<AudiogramPoint[]>(
     FREQUENCIES.map((f) => ({
       frequency: f,
       airConduction: null,
       boneConduction: null,
-    }))
+    })),
   );
   const [selectedEar, setSelectedEar] = useState<Ear>('left');
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -131,7 +131,7 @@ const AudiogramApp = () => {
         (intensity - minIntensity) / (maxIntensity - minIntensity);
       return canvasHeight * normalizedIntensity;
     },
-    []
+    [],
   );
 
   const xToFrequency = useCallback((x: number, canvasWidth: number) => {
@@ -170,7 +170,7 @@ const AudiogramApp = () => {
     (
       context: CanvasRenderingContext2D,
       canvasWidth: number,
-      canvasHeight: number
+      canvasHeight: number,
     ) => {
       const graphWidth = canvasWidth - LEFT_PADDING;
       const graphHeight = canvasHeight - TOP_PADDING - BOTTOM_PADDING;
@@ -270,7 +270,7 @@ const AudiogramApp = () => {
         data: AudiogramPoint[],
         ear: Ear,
         drawAir: boolean,
-        context: CanvasRenderingContext2D
+        context: CanvasRenderingContext2D,
       ) => {
         context.beginPath();
         context.strokeStyle = ear === 'left' ? '#3b82f6' : '#ef4444';
@@ -300,7 +300,7 @@ const AudiogramApp = () => {
       drawData(rightEarData, 'right', true, context);
       drawData(rightEarData, 'right', false, context);
     },
-    [frequencyToX, intensityToY, leftEarData, rightEarData]
+    [frequencyToX, intensityToY, leftEarData, rightEarData],
   );
 
   useEffect(() => {
@@ -369,7 +369,7 @@ const AudiogramApp = () => {
     const newData =
       selectedEar === 'left' ? [...leftEarData] : [...rightEarData];
     const pointIndex = newData.findIndex(
-      (p) => p.frequency === clickedFrequency
+      (p) => p.frequency === clickedFrequency,
     );
 
     if (pointIndex !== -1) {
@@ -429,10 +429,10 @@ const AudiogramApp = () => {
     }
 
     const hasLeftEarData = leftEarData.some(
-      (point) => point.airConduction !== null || point.boneConduction !== null
+      (point) => point.airConduction !== null || point.boneConduction !== null,
     );
     const hasRightEarData = rightEarData.some(
-      (point) => point.airConduction !== null || point.boneConduction !== null
+      (point) => point.airConduction !== null || point.boneConduction !== null,
     );
 
     if (!hasLeftEarData && !hasRightEarData) {
@@ -466,14 +466,14 @@ const AudiogramApp = () => {
             frequency: f,
             airConduction: null,
             boneConduction: null,
-          }))
+          })),
         );
         setRightEarData(
           FREQUENCIES.map((f) => ({
             frequency: f,
             airConduction: null,
             boneConduction: null,
-          }))
+          })),
         );
         setTimeout(() => {
           setShowSubmission(false);
@@ -649,7 +649,7 @@ const AudiogramApp = () => {
                         frequencyToX(
                           point.frequency,
                           canvasDimensions.graphWidth -
-                            canvasDimensions.leftPadding
+                            canvasDimensions.leftPadding,
                         );
                       const y =
                         TOP_PADDING +
@@ -657,7 +657,7 @@ const AudiogramApp = () => {
                           point.airConduction,
                           canvasDimensions.height -
                             canvasDimensions.bottomPadding -
-                            TOP_PADDING
+                            TOP_PADDING,
                         );
                       return (
                         <motion.div
@@ -684,7 +684,7 @@ const AudiogramApp = () => {
                         frequencyToX(
                           point.frequency,
                           canvasDimensions.graphWidth -
-                            canvasDimensions.leftPadding
+                            canvasDimensions.leftPadding,
                         );
                       const y =
                         TOP_PADDING +
@@ -692,7 +692,7 @@ const AudiogramApp = () => {
                           point.airConduction,
                           canvasDimensions.height -
                             canvasDimensions.bottomPadding -
-                            TOP_PADDING
+                            TOP_PADDING,
                         );
                       return (
                         <motion.div
@@ -719,7 +719,7 @@ const AudiogramApp = () => {
                         frequencyToX(
                           point.frequency,
                           canvasDimensions.graphWidth -
-                            canvasDimensions.leftPadding
+                            canvasDimensions.leftPadding,
                         );
                       const y =
                         TOP_PADDING +
@@ -727,7 +727,7 @@ const AudiogramApp = () => {
                           point.boneConduction,
                           canvasDimensions.height -
                             canvasDimensions.bottomPadding -
-                            TOP_PADDING
+                            TOP_PADDING,
                         );
                       return (
                         <motion.div
@@ -758,7 +758,7 @@ const AudiogramApp = () => {
                         frequencyToX(
                           point.frequency,
                           canvasDimensions.graphWidth -
-                            canvasDimensions.leftPadding
+                            canvasDimensions.leftPadding,
                         );
                       const y =
                         TOP_PADDING +
@@ -766,7 +766,7 @@ const AudiogramApp = () => {
                           point.boneConduction,
                           canvasDimensions.height -
                             canvasDimensions.bottomPadding -
-                            TOP_PADDING
+                            TOP_PADDING,
                         );
                       return (
                         <motion.div
@@ -857,8 +857,8 @@ const AudiogramApp = () => {
                 submissionStatus === 'success'
                   ? 'border-green-600'
                   : submissionStatus === 'error'
-                  ? 'border-red-600'
-                  : 'border-gray-700'
+                    ? 'border-red-600'
+                    : 'border-gray-700',
               )}
             >
               <DialogHeader>
