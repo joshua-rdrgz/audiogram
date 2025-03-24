@@ -38,15 +38,15 @@ const TooltipHelper: React.FC<{
   title: string;
   description: string;
 }> = ({ title, description }) => (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <HelpCircle className="h-4 w-4 text-gray-400 hover:text-gray-300 transition-colors" />
-      </TooltipTrigger>
-      <TooltipContent className="bg-gray-800 border-gray-700 text-white max-w-xs p-3 pb-6">
-        <p className="font-semibold text-base mb-1">{title}</p>
-        <p className="text-xs text-gray-300 text-wrap">{description}</p>
-      </TooltipContent>
-    </Tooltip>
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <HelpCircle className='h-4 w-4 text-gray-400 hover:text-gray-300 transition-colors' />
+    </TooltipTrigger>
+    <TooltipContent className='bg-gray-800 border-gray-700 text-white max-w-xs p-3 pb-6'>
+      <p className='font-semibold text-base mb-1'>{title}</p>
+      <p className='text-xs text-gray-300 text-wrap'>{description}</p>
+    </TooltipContent>
+  </Tooltip>
 );
 
 interface AudiogramPoint {
@@ -57,7 +57,26 @@ interface AudiogramPoint {
 
 type Ear = 'left' | 'right';
 
-const FREQUENCIES = [250, 500, 1000, 2000, 4000, 8000];
+const FREQUENCIES = [
+  125, 250, 500, 750, 1000, 1500, 2000, 3000, 4000, 6000, 8000,
+];
+const MAIN_FREQUENCIES = [125, 250, 500, 1000, 2000, 4000, 8000];
+const SECONDARY_FREQUENCIES = [750, 1500, 3000, 6000];
+
+const HEARING_THRESHOLDS = [
+  { label: 'Normal', start: -10, end: 25, color: 'rgba(74, 222, 128, 0.2)' },
+  { label: 'Mild', start: 25, end: 40, color: 'rgba(250, 204, 21, 0.2)' },
+  { label: 'Moderate', start: 40, end: 55, color: 'rgba(234, 179, 8, 0.2)' },
+  {
+    label: 'Moderately Severe',
+    start: 55,
+    end: 70,
+    color: 'rgba(249, 115, 22, 0.2)',
+  },
+  { label: 'Severe', start: 70, end: 90, color: 'rgba(239, 68, 68, 0.2)' },
+  { label: 'Profound', start: 90, end: 120, color: 'rgba(220, 38, 38, 0.2)' },
+];
+
 const INTENSITY_RANGE = [-10, 120];
 const LEFT_PADDING = 80;
 const TOP_PADDING = 80;
@@ -158,16 +177,48 @@ const AudiogramApp = () => {
 
       context.clearRect(0, 0, canvasWidth, canvasHeight);
 
+      // Draw hearing threshold backgrounds
+      HEARING_THRESHOLDS.forEach((threshold) => {
+        const yStart = TOP_PADDING + intensityToY(threshold.start, graphHeight);
+        const yEnd = TOP_PADDING + intensityToY(threshold.end, graphHeight);
+        context.fillStyle = threshold.color;
+        context.fillRect(LEFT_PADDING, yStart, graphWidth, yEnd - yStart);
+      });
+
+      // Draw hearing threshold labels
+      context.font = '12px sans-serif';
+      context.fillStyle = 'white';
+      context.textAlign = 'left';
+      context.textBaseline = 'middle';
+      HEARING_THRESHOLDS.forEach((threshold) => {
+        const yMid =
+          TOP_PADDING +
+          intensityToY((threshold.start + threshold.end) / 2, graphHeight);
+        context.fillText(threshold.label, LEFT_PADDING + graphWidth + 5, yMid);
+      });
+
       context.strokeStyle = 'rgba(150, 150, 150, 0.5)';
       context.lineWidth = 0.5;
 
-      FREQUENCIES.forEach((frequency) => {
+      // Draw main frequency lines (solid)
+      MAIN_FREQUENCIES.forEach((frequency) => {
         const x = LEFT_PADDING + frequencyToX(frequency, graphWidth);
         context.beginPath();
         context.moveTo(x, TOP_PADDING);
         context.lineTo(x, TOP_PADDING + graphHeight);
         context.stroke();
       });
+
+      // Draw secondary frequency lines (dotted)
+      context.setLineDash([2, 2]);
+      SECONDARY_FREQUENCIES.forEach((frequency) => {
+        const x = LEFT_PADDING + frequencyToX(frequency, graphWidth);
+        context.beginPath();
+        context.moveTo(x, TOP_PADDING);
+        context.lineTo(x, TOP_PADDING + graphHeight);
+        context.stroke();
+      });
+      context.setLineDash([]);
 
       const [minIntensity, maxIntensity] = INTENSITY_RANGE;
       for (
@@ -186,7 +237,7 @@ const AudiogramApp = () => {
       context.fillStyle = 'white';
       context.textAlign = 'center';
       context.textBaseline = 'bottom';
-      FREQUENCIES.forEach((frequency) => {
+      MAIN_FREQUENCIES.forEach((frequency) => {
         const x = LEFT_PADDING + frequencyToX(frequency, graphWidth);
         context.fillText(String(frequency), x, TOP_PADDING - 20);
       });
@@ -263,8 +314,8 @@ const AudiogramApp = () => {
     if (!container) return;
 
     const containerWidth = container.offsetWidth;
-    const graphWidth = containerWidth * 0.75;
-    const legendWidth = containerWidth * 0.25;
+    const graphWidth = containerWidth * 0.7; // Reduced to accommodate threshold labels
+    const legendWidth = containerWidth * 0.3;
     const containerHeight = 0.7 * containerWidth;
 
     canvas.width = graphWidth + legendWidth;
@@ -289,7 +340,7 @@ const AudiogramApp = () => {
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
 
-    const graphWidth = canvas.width * 0.75 - LEFT_PADDING;
+    const graphWidth = canvas.width * 0.7 - LEFT_PADDING;
     const graphHeight = canvas.height - TOP_PADDING - BOTTOM_PADDING;
 
     const adjustedX = x - LEFT_PADDING;
@@ -446,14 +497,14 @@ const AudiogramApp = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.25 }}
-        className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-4 md:p-8"
+        className='min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-4 md:p-8'
       >
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className='max-w-4xl mx-auto space-y-6'>
           <motion.h1
             initial={{ y: -20 }}
             animate={{ y: 0 }}
             transition={{ duration: 0.25 }}
-            className="text-4xl md:text-5xl font-bold text-center bg-gradient-to-r from-blue-400 to-purple-500 text-transparent bg-clip-text pb-2"
+            className='text-4xl md:text-5xl font-bold text-center bg-gradient-to-r from-blue-400 to-purple-500 text-transparent bg-clip-text pb-2'
           >
             Audiogram Viewer
           </motion.h1>
@@ -462,43 +513,43 @@ const AudiogramApp = () => {
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.25, delay: 0.1 }}
-            className="flex flex-col sm:flex-row gap-4 w-full bg-gray-800/50 p-4 rounded-lg shadow-lg"
+            className='flex flex-col sm:flex-row gap-4 w-full bg-gray-800/50 p-4 rounded-lg shadow-lg'
           >
-            <div className="flex-1 space-y-2">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="patient-name" className="text-gray-200">
+            <div className='flex-1 space-y-2'>
+              <div className='flex items-center gap-2'>
+                <Label htmlFor='patient-name' className='text-gray-200'>
                   Patient Name
                 </Label>
-                <TooltipHelper 
-                  title='Patient Identification' 
-                  description='Enter the full name of the patient for record-keeping.' 
+                <TooltipHelper
+                  title='Patient Identification'
+                  description='Enter the full name of the patient for record-keeping.'
                 />
               </div>
               <Input
-                id="patient-name"
+                id='patient-name'
                 value={patientName}
                 onChange={(e) => setPatientName(e.target.value)}
-                placeholder="Enter patient name"
-                className="bg-gray-700 text-white border-gray-600 focus:border-blue-500 transition-colors"
+                placeholder='Enter patient name'
+                className='bg-gray-700 text-white border-gray-600 focus:border-blue-500 transition-colors'
               />
             </div>
-            <div className="flex-1 space-y-2">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="patient-age" className="text-gray-200">
+            <div className='flex-1 space-y-2'>
+              <div className='flex items-center gap-2'>
+                <Label htmlFor='patient-age' className='text-gray-200'>
                   Patient Age
                 </Label>
-                <TooltipHelper 
-                  title='Age Information' 
-                  description={`Enter the patient's age in years.`} 
+                <TooltipHelper
+                  title='Age Information'
+                  description={`Enter the patient's age in years.`}
                 />
               </div>
               <Input
-                id="patient-age"
-                type="number"
+                id='patient-age'
+                type='number'
                 value={patientAge}
                 onChange={(e) => setPatientAge(e.target.value)}
-                placeholder="Enter patient age"
-                className="bg-gray-700 text-white border-gray-600 focus:border-blue-500 transition-colors"
+                placeholder='Enter patient age'
+                className='bg-gray-700 text-white border-gray-600 focus:border-blue-500 transition-colors'
               />
             </div>
           </motion.div>
@@ -507,29 +558,29 @@ const AudiogramApp = () => {
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.25, delay: 0.2 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 bg-gray-800/50 p-4 rounded-lg shadow-lg"
+            className='flex flex-col sm:flex-row items-center justify-center gap-4 bg-gray-800/50 p-4 rounded-lg shadow-lg'
           >
-            <div className="min-w-64 space-y-2">
-              <div className="flex items-center gap-2">
-                <Label className="text-gray-200">Ear Selection</Label>
+            <div className='min-w-64 space-y-2'>
+              <div className='flex items-center gap-2'>
+                <Label className='text-gray-200'>Ear Selection</Label>
                 <TooltipHelper
                   title='Choose Ear to Plot'
                   description='Select which ear to record data for (Left: Blue, Right: Red).'
                 />
               </div>
               <Select onValueChange={selectEar}>
-                <SelectTrigger className="bg-gray-700 border-gray-600">
-                  <SelectValue placeholder="Left Ear" />
+                <SelectTrigger className='bg-gray-700 border-gray-600'>
+                  <SelectValue placeholder='Left Ear' />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-700 text-white border-gray-600">
-                  <SelectItem value="left">Left Ear</SelectItem>
-                  <SelectItem value="right">Right Ear</SelectItem>
+                <SelectContent className='bg-gray-700 text-white border-gray-600'>
+                  <SelectItem value='left'>Left Ear</SelectItem>
+                  <SelectItem value='right'>Right Ear</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="min-w-64 space-y-2">
-              <div className="flex items-center gap-2">
-                <Label className="text-gray-200">Conduction Type</Label>
+            <div className='min-w-64 space-y-2'>
+              <div className='flex items-center gap-2'>
+                <Label className='text-gray-200'>Conduction Type</Label>
                 <TooltipHelper
                   title='Select Measurement Type'
                   description='Choose between Air (X/O) or Bone (>/<) conduction.'
@@ -540,33 +591,33 @@ const AudiogramApp = () => {
                   selectDrawingMode(value === 'air' ? true : false)
                 }
               >
-                <SelectTrigger className="bg-gray-700 border-gray-600">
-                  <SelectValue placeholder="Air Conduction" />
+                <SelectTrigger className='bg-gray-700 border-gray-600'>
+                  <SelectValue placeholder='Air Conduction' />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-700 text-white border-gray-600">
-                  <SelectItem value="air">Air Conduction</SelectItem>
-                  <SelectItem value="bone">Bone Conduction</SelectItem>
+                <SelectContent className='bg-gray-700 text-white border-gray-600'>
+                  <SelectItem value='air'>Air Conduction</SelectItem>
+                  <SelectItem value='bone'>Bone Conduction</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <Label className="text-gray-200">Clear Data</Label>
+            <div className='flex flex-col gap-2'>
+              <div className='flex items-center gap-2'>
+                <Label className='text-gray-200'>Clear Data</Label>
                 <TooltipHelper
                   title='Reset Measurements'
                   description='Clear all data points for the selected ear.'
                 />
               </div>
-              <div className="flex gap-2">
+              <div className='flex gap-2'>
                 <Button
                   onClick={() => clearData('left')}
-                  className="bg-gray-700 hover:bg-blue-600 text-gray-200 border-gray-600 transition-colors"
+                  className='bg-gray-700 hover:bg-blue-600 text-gray-200 border-gray-600 transition-colors'
                 >
                   Left Ear
                 </Button>
                 <Button
                   onClick={() => clearData('right')}
-                  className="bg-gray-700 hover:bg-red-600 text-gray-200 border-gray-600 transition-colors"
+                  className='bg-gray-700 hover:bg-red-600 text-gray-200 border-gray-600 transition-colors'
                 >
                   Right Ear
                 </Button>
@@ -578,17 +629,15 @@ const AudiogramApp = () => {
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.25, delay: 0.3 }}
-            id="audiogram-container"
-            className="relative w-full rounded-lg overflow-hidden shadow-xl"
+            id='audiogram-container'
+            className='relative w-full rounded-lg overflow-hidden shadow-xl'
           >
-            <div
-              className="relative bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-sm"
-            >
+            <div className='relative bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-sm'>
               <canvas
                 ref={canvasRef}
                 onClick={handleCanvasClick}
-                className="cursor-crosshair"
-                aria-label="Audiogram Canvas"
+                className='cursor-crosshair'
+                aria-label='Audiogram Canvas'
               />
 
               {canvasDimensions.width > 0 && (
@@ -615,13 +664,13 @@ const AudiogramApp = () => {
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
                           key={`left-air-${index}`}
-                          className="absolute pointer-events-none translate-x-[-50%] translate-y-[-50%] transform"
+                          className='absolute pointer-events-none translate-x-[-50%] translate-y-[-50%] transform'
                           style={{
                             left: `${x}px`,
                             top: `${y}px`,
                           }}
                         >
-                          <X size={20} className="text-blue-200" />
+                          <X size={20} className='text-blue-200' />
                         </motion.div>
                       );
                     }
@@ -650,13 +699,13 @@ const AudiogramApp = () => {
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
                           key={`right-air-${index}`}
-                          className="absolute pointer-events-none translate-x-[-50%] translate-y-[-50%] transform"
+                          className='absolute pointer-events-none translate-x-[-50%] translate-y-[-50%] transform'
                           style={{
                             left: `${x}px`,
                             top: `${y}px`,
                           }}
                         >
-                          <Circle size={20} className="text-red-200" />
+                          <Circle size={20} className='text-red-200' />
                         </motion.div>
                       );
                     }
@@ -685,7 +734,7 @@ const AudiogramApp = () => {
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
                           key={`left-bone-${index}`}
-                          className="absolute pointer-events-none translate-x-[-50%] translate-y-[-50%] transform"
+                          className='absolute pointer-events-none translate-x-[-50%] translate-y-[-50%] transform'
                           style={{
                             left: `${x}px`,
                             top: `${y}px`,
@@ -694,7 +743,7 @@ const AudiogramApp = () => {
                           <Triangle
                             style={{ transform: 'rotate(270deg)' }}
                             size={20}
-                            className="text-blue-200"
+                            className='text-blue-200'
                           />
                         </motion.div>
                       );
@@ -724,7 +773,7 @@ const AudiogramApp = () => {
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
                           key={`right-bone-${index}`}
-                          className="absolute pointer-events-none translate-x-[-50%] translate-y-[-50%] transform"
+                          className='absolute pointer-events-none translate-x-[-50%] translate-y-[-50%] transform'
                           style={{
                             left: `${x}px`,
                             top: `${y}px`,
@@ -733,7 +782,7 @@ const AudiogramApp = () => {
                           <Triangle
                             style={{ transform: 'rotate(90deg)' }}
                             size={20}
-                            className="text-red-200"
+                            className='text-red-200'
                           />
                         </motion.div>
                       );
@@ -746,35 +795,39 @@ const AudiogramApp = () => {
 
             {canvasDimensions.width > 0 && (
               <div
-                className="absolute text-sm p-4 bg-gray-800/50 rounded-lg"
+                className='absolute text-sm p-4 bg-gray-800/50 rounded-lg'
                 style={{
                   top: '20px',
-                  left: `${canvasDimensions.graphWidth + 40}px`,
+                  left: `${canvasDimensions.graphWidth + 80}px`,
                 }}
               >
-                <div className="text-blue-500 font-semibold mb-2">Left Ear:</div>
-                <div className="flex items-center mb-2">
-                  <X size={14} className="text-blue-500 mr-2" />
+                <div className='text-blue-500 font-semibold mb-2'>
+                  Left Ear:
+                </div>
+                <div className='flex items-center mb-2'>
+                  <X size={14} className='text-blue-500 mr-2' />
                   <span>Air Conduction</span>
                 </div>
-                <div className="flex items-center mb-4">
+                <div className='flex items-center mb-4'>
                   <Triangle
                     size={14}
-                    className="text-blue-500 mr-2"
+                    className='text-blue-500 mr-2'
                     style={{ transform: 'rotate(270deg)' }}
                   />
                   <span>Bone Conduction</span>
                 </div>
 
-                <div className="text-red-500 font-semibold mb-2">Right Ear:</div>
-                <div className="flex items-center mb-2">
-                  <Circle size={14} className="text-red-500 mr-2" />
+                <div className='text-red-500 font-semibold mb-2'>
+                  Right Ear:
+                </div>
+                <div className='flex items-center mb-2'>
+                  <Circle size={14} className='text-red-500 mr-2' />
                   <span>Air Conduction</span>
                 </div>
-                <div className="flex items-center">
+                <div className='flex items-center'>
                   <Triangle
                     size={14}
-                    className="text-red-500 mr-2"
+                    className='text-red-500 mr-2'
                     style={{ transform: 'rotate(90deg)' }}
                   />
                   <span>Bone Conduction</span>
@@ -787,11 +840,11 @@ const AudiogramApp = () => {
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.25, delay: 0.4 }}
-            className="flex justify-center"
+            className='flex justify-center'
           >
             <Button
               onClick={submitData}
-              className="w-full max-w-md bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 rounded-md transition-all shadow-md"
+              className='w-full max-w-md bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 rounded-md transition-all shadow-md'
             >
               Submit Data
             </Button>
@@ -810,45 +863,45 @@ const AudiogramApp = () => {
             >
               <DialogHeader>
                 {submissionStatus === 'submitting' && (
-                  <DialogTitle className="flex items-center">
+                  <DialogTitle className='flex items-center'>
                     <svg
-                      className="animate-spin h-5 w-5 mr-3 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
+                      className='animate-spin h-5 w-5 mr-3 text-white'
+                      xmlns='http://www.w3.org/2000/svg'
+                      fill='none'
+                      viewBox='0 0 24 24'
                     >
                       <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
+                        className='opacity-25'
+                        cx='12'
+                        cy='12'
+                        r='10'
+                        stroke='currentColor'
+                        strokeWidth='4'
                       ></circle>
                       <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        className='opacity-75'
+                        fill='currentColor'
+                        d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
                       ></path>
                     </svg>
                     Submitting Data
                   </DialogTitle>
                 )}
                 {submissionStatus === 'success' && (
-                  <DialogTitle className="flex items-center text-green-500">
-                    <CheckCircle className="h-6 w-6 mr-2" />
+                  <DialogTitle className='flex items-center text-green-500'>
+                    <CheckCircle className='h-6 w-6 mr-2' />
                     Success!
                   </DialogTitle>
                 )}
                 {submissionStatus === 'error' && (
-                  <DialogTitle className="flex items-center text-red-500">
-                    <AlertCircle className="h-6 w-6 mr-2" />
+                  <DialogTitle className='flex items-center text-red-500'>
+                    <AlertCircle className='h-6 w-6 mr-2' />
                     Error
                   </DialogTitle>
                 )}
               </DialogHeader>
 
-              <DialogDescription className="text-gray-300">
+              <DialogDescription className='text-gray-300'>
                 {submissionMessage}
               </DialogDescription>
 
@@ -856,7 +909,7 @@ const AudiogramApp = () => {
                 <DialogFooter>
                   <Button
                     onClick={() => setShowSubmission(false)}
-                    className="bg-gray-700 hover:bg-gray-600 text-gray-200"
+                    className='bg-gray-700 hover:bg-gray-600 text-gray-200'
                   >
                     Close
                   </Button>
